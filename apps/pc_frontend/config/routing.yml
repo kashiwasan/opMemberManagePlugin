@@ -21,17 +21,33 @@ member_managae_edit_confirm:
 member_manage_edit_post:
   url: /member/manage/api/edit.json
   param: { module: memberManage, action: editComplete, sf_format: json }
-  requirements: { sf_method: [post] }
+  requirements: { sf_method: [get, post] }
 
 member_manage_delete_confirm:
-  url:   /member/manage/delete/confirm
+  url:   /member/manage/delete/confirm/:id
   param: { module: memberManage, action: deleteConfirm }
   requirements:
+    id: \d+ 
     sf_method: [get, post]
 
 member_manage_delete:
-  url:   /member/manage/delete/complete
+  url:   /member/manage/delete/complete/:id
   param: { module: memberManage, action: deleteComplete }
   requirements:
+    id: \d+ 
+    sf_method: [get, post]
+
+member_manage_reject_confirm:
+  url:   /member/manage/reject/confirm/:id
+  param: { module: memberManage, action: loginRejectConfirm }
+  requirements:
+    id: \d+ 
+    sf_method: [get, post]
+
+member_manage_reject:
+  url:   /member/manage/reject/complete/:id
+  param: { module: memberManage, action: loginRejectComplete }
+  requirements:
+    id: \d+ 
     sf_method: [get, post]
 

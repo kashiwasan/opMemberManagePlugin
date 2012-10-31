@@ -14,7 +14,11 @@
         <td><?php echo $member->getEmailAddress() ?></td>
         <td><?php if ($member->getIsLoginRejected()): ?>ログイン停止中<?php else: ?>アクティブ<?php endif ?></td>
         <td><?php if ($member->getLastLoginTime()) : ?><?php echo date('y-m-d<b\r />H:i:s', $member->getLastLoginTime()) ?><?php endif; ?></td>
-        <td style="text-align: center;"><?php echo link_to(__('Edit'), '@member_manage_edit?id='.$member->getId()) ?> | <?php echo link_to(__('Delete'), '@member_manage_delete_confirm?id='.$member->getId()) ?></td>
+        <td style="text-align: center;">
+          <?php echo link_to(__('Edit'), '@member_manage_edit?id='.$member->getId()) ?> | 
+          <?php echo link_to(__('Delete'), '@member_manage_delete_confirm?id='.$member->getId()) ?> |
+          <?php echo $member->getIsLoginRejected() ? link_to('解除', '@member_manage_reject_confirm?id='.$member->getId()) : link_to('停止', '@member_manage_reject_confirm?id='.$member->getId()) ?>
+        </td>
       </tr>
 <?php endforeach; ?>
     </tbody>

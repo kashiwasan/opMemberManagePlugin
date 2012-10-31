@@ -111,7 +111,7 @@ class opFormItemGeneratorForHyperForm
         $input['type'] = 'password';
         break;
       case 'date':
-        $input['type'] = 'date';
+        $input['type'] = 'text';
         break;
       case 'increased_input':
         $input['type'] = 'text';
@@ -142,7 +142,7 @@ class opFormItemGeneratorForHyperForm
             if ($v)
             {
               $l['label'] = sfContext::getInstance()->getI18N()->__($v);
-              $l['value'] = $k;
+              $l['value'] = $v;
             }
             $lists[] = $l;
           }

@@ -220,7 +220,7 @@ class opMemberProfileFormForHyperForm extends BaseForm
       $form['text'] = $profileWithI18n['info'];
 
       // validator
-      $form['isRequired'] = $profileWithI18nWithCamelize['IsRequired'];
+      $form['input']['isRequired'] = $profileWithI18nWithCamelize['IsRequired'];
 
 //            
 //      TODO: validator の実装
@@ -239,17 +239,17 @@ class opMemberProfileFormForHyperForm extends BaseForm
       }
       if (!is_null($this->nameFormat))
       {
-        $form['key'] = sprintf($this->nameFormat, $form['key']);
+        $form['key'] = sprintf($this->nameFormat, $form['key']).'[value]';
       }
       $forms[] = $form;
 
       if ($profile->getIsEditPublicFlag())
       {
         $form = array();
-        $form['key'] = $profile->getName().'[public_flag]';
+        $form['key'] = $profile->getName();
         $form['label'] = sfContext::getInstance()->getI18N()->__('Public flag');
-        $form['input']['type'] = 'pulldown'; // TODO: 本当はsliderにしたいがHyperformのバグ？により断念。
-        $form['isRequired'] = true;
+        $form['input']['type'] = 'radio'; // TODO: 本当はsliderにしたいがHyperformのバグ？により断念。
+        $form['input']['isRequired'] = true;
         foreach ($profile->getPublicFlags() as $k => $v)
         {
           $item = array();
@@ -263,7 +263,7 @@ class opMemberProfileFormForHyperForm extends BaseForm
         }
         if (!is_null($this->nameFormat))
         {
-          $form['key'] = sprintf($this->nameFormat, $form['key']);
+          $form['key'] = sprintf($this->nameFormat, $form['key']).'[public_flag]';
         }
         $forms[] = $form;
       }

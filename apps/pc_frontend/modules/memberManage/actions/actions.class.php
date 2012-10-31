@@ -13,7 +13,7 @@
  *
  * @package    OpenPNE
  * @subpackage memberManage
- * @author     Your name here
+ * @author     shouta kashiwagi <kashiwagi@php.net>
  * @version    SVN: $Id: actions.class.php 9301 2008-05-27 01:08:46Z dwhittle $
  */
 class memberManageActions extends sfActions
@@ -49,12 +49,12 @@ class memberManageActions extends sfActions
 
   public function executeEdit(sfWebRequest $request)
   {
-    $member = Doctrine::getTable('Member')->find($request->getParameter('id'));
-    if (!$member)
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member)
     {
       $this->forward404();
     }
-    $this->profileForms = new opMemberProfileFormForHyperForm($member);
+    $this->profileForms = new opMemberProfileFormForHyperForm($this->member);
     $this->profileForm  = $this->profileForms->getAllWidgets();
     return sfView::SUCCESS;
   }
@@ -66,17 +66,87 @@ class memberManageActions extends sfActions
 
   public function executeEditComplete(sfWebRequest $request)
   {
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member)
+    {
+      $this->forward404();
+    }
+    $this->profileForms = new MemberProfileForm($this->member->getProfiles(), array(), false);
+    $this->profileForms->setConfigWidgets();
+    unset($this->profileForms['_csrf_token']);
+    $profileParam = $request->getParameter('profile');
+    $this->profileForms->bind($profileParam);
+    if ($this->profileForms->isValid())
+    {
+      $this->profileForms->save($this->member->getId());
+    }
+    else
+    {
+      $error_messages = array_map(
+        create_function('$e', 'return $e->getMessage();'),
+        $this->profileForms->getErrorSchema()->getErrors());
+      var_dump($error_messages);
+    }
 
+    return sfView::SUCCESS;
   }
 
   public function executeDeleteConfirm(sfWebRequest $request)
   {
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member)
+    {
+      $this->forward404();
+    }
+    $this->csrfForm = new BaseForm();
 
+    return sfView::SUCCESS;
   }
 
   public function executeDeleteComplete(sfWebRequest $request)
   {
-
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member || 1 === (int) $request->getParameter('id'))
+    {
+      $this->forward404();
+    }
+    $request->checkCSRFProtection();
+    $this->getUser()->setFlash('notice', $this->member->getName().' を削除しました。');
+    $this->member->delete();
+    $this->redirect('@member_manage_index');
   }
 
+  public function executeLoginRejectConfirm(sfWebRequest $request)
+  {
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member || 1 === (int) $request->getParameter('id'))
+    {
+      $this->forward404();
+    }
+    $this->csrfForm = new BaseForm();
+
+    return sfView::SUCCESS;
+  }
+
+  public function executeLoginRejectComplete(sfWebRequest $request)
+  {
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member || 1 === (int) $request->getParameter('id'))
+    {
+      $this->forward404();
+    }
+    $request->checkCSRFProtection();
+    if ($this->member->getIsLoginRejected())
+    {
+      $this->member->setIsLoginRejected(false);
+      $this->getUser()->setFlash('notice', $this->member->getName().' のアカウントを解除しました。');
+    }
+    else
+    {
+      $this->member->setIsLoginRejected(true);
+      $this->getUser()->setFlash('notice', $this->member->getName().' のアカウントを凍結しました。');
+    }
+    $this->member->save();
+    $this->redirect('@member_manage_index');
+  }
 }
