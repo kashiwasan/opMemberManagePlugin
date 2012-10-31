@@ -156,7 +156,7 @@ class opMemberProfileFormForHyperForm extends BaseForm
         $itemCount = count($form['input']['items']);
           for($i=0;$i<$itemCount;$i++)
           {
-            if ($form['input']['items'][$i]['label'] === (string) sfContext::getInstance()->getI18N()->__($this->profileMember->getProfile($form['key'])->getValue()))
+            if ($form['input']['items'][$i]['label'] === (string) sfContext::getInstance()->getI18N()->__($this->profileMember->getProfile($form['key'])))
             {
               $form['input']['items'][$i]['isSelected'] = true;
             }
@@ -219,25 +219,15 @@ class opMemberProfileFormForHyperForm extends BaseForm
       }
       $form['text'] = $profileWithI18n['info'];
 
+      // validator
+      $form['isRequired'] = $profileWithI18nWithCamelize['IsRequired'];
+
 //            
 //      TODO: validator の実装
 //
 //      $validatorOptions = array(
 //        'validator' => opFormItemGenerator::generateValidator($profileWithI18n, $this->getFormOptions($profile->getId())),
 //      );
-
-
-//
-//      TODO: public_flag の実装 (要Hyperform改造?)
-//
-//      if ($profile->getIsEditPublicFlag())
-//      {
-//        $widgetOptions['is_edit_public_flag'] = $validatorOptions['is_edit_public_flag'] = true;
-//        if (!$this->getDefault($profile->getName()))
- //       {
-//          $this->setDefault($profile->getName(), array('public_flag' => $profile->getDefaultPublicFlag()));
-//        }
-//      }
 
       if ($profile->isPreset())
       {
@@ -251,8 +241,33 @@ class opMemberProfileFormForHyperForm extends BaseForm
       {
         $form['key'] = sprintf($this->nameFormat, $form['key']);
       }
-     
       $forms[] = $form;
+
+      if ($profile->getIsEditPublicFlag())
+      {
+        $form = array();
+        $form['key'] = $profile->getName().'[public_flag]';
+        $form['label'] = sfContext::getInstance()->getI18N()->__('Public flag');
+        $form['input']['type'] = 'pulldown'; // TODO: 本当はsliderにしたいがHyperformのバグ？により断念。
+        $form['isRequired'] = true;
+        foreach ($profile->getPublicFlags() as $k => $v)
+        {
+          $item = array();
+          $item['label'] = $v;
+          $item['value'] = $k;
+          if ($k == (int) $this->profileMember->getProfile($profile->getName())->getPublicFlag())
+          {
+            $item['isSelected'] = true;
+          }
+          $form['input']['items'][] = $item;
+        }
+        if (!is_null($this->nameFormat))
+        {
+          $form['key'] = sprintf($this->nameFormat, $form['key']);
+        }
+        $forms[] = $form;
+      }
+     
     }
 
     return $forms;

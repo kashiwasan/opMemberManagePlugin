@@ -2,7 +2,8 @@
 <div class="partsHeading"><h1>メンバー管理</h1></div>
 <?php use_helper('Javascript') ?>
 <?php use_javascript('/opMemberManagePlugin/js/hyperform.js') ?>
-<?php use_stylesheet('/opMemberManagePlugin/css/hyperform.css', 'last') ?>
+
+<?php use_stylesheet('/opMemberManagePlugin/css/hyperform-1.1.css', 'last') ?>
 <?php echo javascript_tag('
 Event.observe(window, "load", exampleBasic);
 		//
