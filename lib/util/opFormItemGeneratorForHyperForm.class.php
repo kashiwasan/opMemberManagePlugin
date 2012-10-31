@@ -44,10 +44,10 @@ class opFormItemGeneratorForHyperForm
 
     if (in_array($field['FormType'], self::$choicesType))
     {
-      $params['choices'] = array_map(array(sfContext::getInstance()->getI18N(), '__'), $choices);
+      $params['input']['items'] = array_map(array(sfContext::getInstance()->getI18N(), '__'), $choices);
       if (!empty($field['Choices']) && is_array($field['Choices']))
       {
-        $params['choices'] = array_map(array(sfContext::getInstance()->getI18N(), '__'), $field['Choices']);
+        $params['input']['items'] = array_map(array(sfContext::getInstance()->getI18N(), '__'), $field['Choices']);
       }
     }
 
@@ -67,8 +67,10 @@ class opFormItemGeneratorForHyperForm
   public static function generateWidget($field, $choices = array())
   {
     $field = self::arrayKeyCamelize($field);
-    $params = self::generateWidgetParams($field, $choices);
-
+    $input = array();
+////    $form = self::generateWidgetParams($field, $choices);
+//    $params = self::generateWidgetParams($field, $choices);
+/*
     if (in_array($field['FormType'], self::$choicesType))
     {
       if ($field['FormType'] === 'select')
@@ -83,58 +85,67 @@ class opFormItemGeneratorForHyperForm
         $params['expanded'] = true;
       }
     }
-
+*/
 
     switch ($field['FormType'])
     {
       case 'checkbox':
-        $params['multiple'] = true;
-        $obj = new sfWidgetFormChoice($params);
+        $input['type'] = 'checkbox';
+        $input['items'] = array(); //TODO: あとでやる
         break;
       case 'select':
-        $obj = new sfWidgetFormChoice($params);
+        $input['type'] = 'pulldown';
+        $input['items'] = array(); //TODO: あとでやる
         break;
       case 'radio':
-        $obj = new sfWidgetFormChoice($params);
+        $input['type'] = 'radio';
+        $input['items'] = array(); //TODO: あとでやる
         break;
       case 'textarea':
-        $obj = new sfWidgetFormTextarea($params);
+        $input['type'] = 'textarea';
         break;
       case 'rich_textarea':
-        $obj = new opWidgetFormRichTextarea($params);
+        $input['type'] = 'textarea';
         break;
       case 'password':
-        $obj = new sfWidgetFormInputPassword($params);
+        $input['type'] = 'password';
         break;
       case 'date':
-        unset($params['choices']);
-        $params['culture'] = sfContext::getInstance()->getUser()->getCulture();
-        $params['month_format'] = 'number';
-        if (!$field['IsRequired'])
-        {
-          $params['can_be_empty'] = true;
-        }
-        $obj = new opWidgetFormDate($params);
+        $input['type'] = 'date';
         break;
       case 'increased_input':
-        $obj = new opWidgetFormInputIncreased($params);
+        $input['type'] = 'text';
+//        $obj = new opWidgetFormInputIncreased($params);
         break;
       case 'language_select':
-        $languages = sfConfig::get('op_supported_languages');
-        $choices = opToolkit::getCultureChoices($languages);
-        $obj = new sfWidgetFormChoice(array('choices' => $choices));
+        $input['type'] = 'pulldown';
+        $input['items'] = array(); //TODO: あとでやる
+//        $languages = sfConfig::get('op_supported_languages');
+//        $choices = opToolkit::getCultureChoices($languages);
+//        $obj = new sfWidgetFormChoice(array('choices' => $choices));
         break;
       case 'country_select':
-        $info = sfCultureInfo::getInstance(sfContext::getInstance()->getUser()->getCulture());
-        $obj = new sfWidgetFormChoice(array('choices' => $info->getCountries()));
+        $input['type'] = 'pulldown';
+        $input['items'] = array(); //TODO: あとでやる
+//        $info = sfCultureInfo::getInstance(sfContext::getInstance()->getUser()->getCulture());
+//        $obj = new sfWidgetFormChoice(array('choices' => $info->getCountries()));
         break;
       case 'region_select':
+        $input['type'] = 'pulldown';
         $list = include(sfContext::getInstance()->getConfigCache()->checkConfig('config/regions.yml'));
         $type = $field['ValueType'];
         if ('string' !== $type && isset($list[$type]))
         {
           $list = $list[$type];
-          $list = array_combine($list, $list);
+          foreach ($list as $k => $v)
+          {
+            if ($v)
+            {
+              $l['label'] = sfContext::getInstance()->getI18N()->__($v);
+              $l['value'] = $k;
+            }
+            $lists[] = $l;
+          }
         }
         else
         {
@@ -142,18 +153,22 @@ class opFormItemGeneratorForHyperForm
           {
             if ($v)
             {
-              $list[$k] = array_combine($v, $v);
+              $list['label'] = sfContext::getInstance()->getI18N()->__($v);
+              $list['value'] = $k;
             }
+            $lists[] = $list;
           }
         }
-        $list = opToolkit::arrayMapRecursive(array(sfContext::getInstance()->getI18N(), '__'), $list);
-        $obj = new sfWidgetFormChoice(array('choices' => $list));
+        $input['items'] = $lists; //TODO: あとでやる
         break;
       default:
-        $obj = new sfWidgetFormInput($params);
+        $input['type'] = 'text';
     }
-
-    return $obj;
+//    if ($field['IsRequired'])
+//    {
+//      $input['isRequired'] = true;
+//    }
+    return $input;
   }
 
   public static function generateValidator($field, $choices = array())

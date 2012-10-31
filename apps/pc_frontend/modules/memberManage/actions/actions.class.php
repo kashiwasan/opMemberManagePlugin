@@ -23,6 +23,15 @@ class memberManageActions extends sfActions
   *
   * @param sfWebRequest $request A request object
   */
+
+  public function preExecute()
+  {
+    if (1 !== (int) $this->getUser()->getMemberId())
+    {
+      $this->forward404();
+    }
+  }
+
   public function executeIndex(sfWebRequest $request)
   {
     $this->size = 20;
@@ -40,7 +49,14 @@ class memberManageActions extends sfActions
 
   public function executeEdit(sfWebRequest $request)
   {
-
+    $member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$member)
+    {
+      $this->forward404();
+    }
+    $this->profileForms = new opMemberProfileFormForHyperForm($member);
+    $this->profileForm  = $this->profileForms->getAllWidgets();
+    return sfView::SUCCESS;
   }
 
   public function executeEditConfirm(sfWebRequest $request)
