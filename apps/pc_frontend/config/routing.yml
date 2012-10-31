@@ -1,0 +1,37 @@
+member_manage_index:
+  url:   /member/manage
+  param: { module: memberManage, action: index }
+  requirements:
+    sf_method: [get, post]
+
+member_manage_edit:
+  url:   /member/manage/edit/:id
+  param: { module: memberManage, action: edit }
+  requirements:
+    id: \d+ 
+    sf_method: [get, post]
+
+member_managae_edit_confirm:
+  url:   /member/manage/edit/confirm/:id
+  param: { module: memberManage, action: editConfirm }
+  requirements:
+    id: \d+ 
+    sf_method: [post]
+
+member_manage_edit_post:
+  url: /member/manage/api/edit.json
+  param: { module: memberManage, action: editComplete, sf_format: json }
+  requirements: { sf_method: [post] }
+
+member_manage_delete_confirm:
+  url:   /member/manage/delete/confirm
+  param: { module: memberManage, action: deleteConfirm }
+  requirements:
+    sf_method: [get, post]
+
+member_manage_delete:
+  url:   /member/manage/delete/complete
+  param: { module: memberManage, action: deleteComplete }
+  requirements:
+    sf_method: [get, post]
+
