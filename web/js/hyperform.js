@@ -6531,7 +6531,7 @@ var Hyperform = Class.create({
                     }
                     r.input.items.each(function C(aa, ab) {
                         aa._sliderPosition = ab * w;
-                        if (aa.isSelected === true) {
+                        if (aa.isSelected === true && ab !== 0) {
                             m = ab * w - 1;
                             E = ab * w - 1
                         }
@@ -6547,9 +6547,9 @@ var Hyperform = Class.create({
                                 return
                             }
                             if (aa) {
-                                var ad = r.input.items[ae - 1].label;
-                                var ag = r.input.items[ae - 1].value;
-                                af -= w
+                              var ad = r.input.items[ae - 1].label;
+                              var ag = r.input.items[ae - 1].value;
+                              af -= w
                             } else {
                                 var ad = ac.label;
                                 var ag = ac.value

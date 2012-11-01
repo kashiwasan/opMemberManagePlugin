@@ -54,8 +54,45 @@ class memberManageActions extends sfActions
     {
       $this->forward404();
     }
+    
+    $this->memberForm = array(
+      array(
+        'key' => 'member[name]',
+        'label' => sfContext::getInstance()->getI18N()->__('%nickname%'),
+        'input' => array(
+          'type' => 'text',
+          'isRequired' => true,
+          'value' => $this->member->getName(),
+        ),
+      ),
+    );
     $this->profileForms = new opMemberProfileFormForHyperForm($this->member);
     $this->profileForm  = $this->profileForms->getAllWidgets();
+    $this->configForm = array(
+/*
+      array(
+        'key' => 'member_config[pc_address]',
+        'label' => 'メールアドレス',
+        'input' => array(
+          'type' => 'text',
+          'isRequired' => true,
+          'value' => $this->member->getEmailAddress(),
+          'validator' => 'email',
+        ),
+      ),
+*/
+      array(
+        'key' => 'member_config[password]',
+        'label' => 'パスワード',
+        'text' => '6文字以上12文字以内で設定してください。変更しない場合は入力不要です。',
+        'input' => array(
+          'type' => 'password',
+          'isRequired' => false,
+          'minlength' => 6,
+          'maxlength' => 12,
+        ),
+      ),
+    );
     return sfView::SUCCESS;
   }
 
@@ -71,24 +108,64 @@ class memberManageActions extends sfActions
     {
       $this->forward404();
     }
+    $this->memberForms = new MemberForm($this->member, array(), false);
     $this->profileForms = new MemberProfileForm($this->member->getProfiles(), array(), false);
-    $this->profileForms->setConfigWidgets();
-    unset($this->profileForms['_csrf_token']);
+    $this->profileForms->setAllWidgets();
+    $this->memberConfigForms = new opMemberManagePluginMemberConfigForm($this->member, array(), false);
+
+    $memberParam = $request->getParameter('member');
     $profileParam = $request->getParameter('profile');
+    $memberConfigParam = $request->getParameter('member_config');
+
+    $this->memberForms->bind($memberParam);
     $this->profileForms->bind($profileParam);
-    if ($this->profileForms->isValid())
+    $this->memberConfigForms->bind($memberConfigParam);
+
+    if ($this->memberForms->isValid() && $this->profileForms->isValid() && $this->memberConfigForms->isValid())
     {
+      $this->memberForms->save();
       $this->profileForms->save($this->member->getId());
+      $this->memberConfigForms->save($this->member->getId());
+      return $this->renderJSON(200, array('status' => 'success'));
     }
     else
     {
-      $error_messages = array_map(
+      $member_messages = array_map(
         create_function('$e', 'return $e->getMessage();'),
-        $this->profileForms->getErrorSchema()->getErrors());
-      var_dump($error_messages);
+        $this->memberForms->getErrorSchema()->getErrors()
+      );
+      $profile_messages = array_map(
+        create_function('$e', 'return $e->getMessage();'),
+        $this->profileForms->getErrorSchema()->getErrors()
+      );
+      $config_messages = array_map(
+        create_function('$e', 'return $e->getMessage();'),
+        $this->memberConfigForms->getErrorSchema()->getErrors()
+      );
+      var_dump($member_messages);
+      var_dump($profile_messages);
+      var_dump($config_messages);
+      $error_messages = array_merge($member_messages, $profile_messages, $config_messages);
+      $lists = array();
+      foreach ($error_messages as $k => $v)
+      {
+        try 
+        {
+          $labelName = $this->profileForms->getWidget($k)->getLabel();
+        } 
+        catch (Exception $e) 
+        {
+          continue;
+        }
+        if (!$labelName) 
+        {
+          $labelName = $k;
+        }
+        $labelName = sfContext::getInstance()->getI18N()->__($labelName);
+        $lists[$labelName] = sfContext::getInstance()->getI18N()->__($v);
+      }
+      return $this->renderJSON(400, array('status' => 'error', 'error_detail' => $lists));
     }
-
-    return sfView::SUCCESS;
   }
 
   public function executeDeleteConfirm(sfWebRequest $request)
@@ -113,6 +190,51 @@ class memberManageActions extends sfActions
     $request->checkCSRFProtection();
     $this->getUser()->setFlash('notice', $this->member->getName().' を削除しました。');
     $this->member->delete();
+    $this->redirect('@member_manage_index');
+  }
+
+  public function executeAllDeleteConfirm(sfWebRequest $request)
+  {
+    $ids = $request->getParameter('id');
+    $this->members = array();
+    if (!is_array($ids))
+    {
+      $this->forward404();
+    }
+    $this->csrfForm = new BaseForm();
+    foreach ($ids as $id)
+    {
+      $m = Doctrine::getTable('Member')->find($id);
+      if (!$m || 1 === (int) $id)
+      {
+        continue;
+      }
+      $this->members[] = $m;
+    }
+    $this->getUser()->setAttribute('op_all_delete_id', $ids);
+
+    return sfView::SUCCESS;
+  }
+
+  public function executeAllDeleteComplete(sfWebRequest $request)
+  {
+    $ids = $this->getUser()->getAttribute('op_all_delete_id', null);
+    if (!is_array($ids))
+    {
+      $this->forward404();
+    }
+    $request->checkCSRFProtection();
+    foreach ($ids as $id)
+    {
+      $m = Doctrine::getTable('Member')->find($id);
+      if (!$m || 1 === (int) $id)
+      {
+        continue;
+      }
+      $m->delete();
+    }
+
+    $this->getUser()->setFlash('notice', 'メンバーを削除しました。');
     $this->redirect('@member_manage_index');
   }
 
@@ -148,5 +270,13 @@ class memberManageActions extends sfActions
     }
     $this->member->save();
     $this->redirect('@member_manage_index');
+  }
+
+  protected function renderJSON($statusCode, array $data)
+  {
+    $this->getResponse()->setStatusCode($statusCode);
+    $this->getResponse()->setContentType('application/json');
+
+    return $this->renderText(json_encode($data));
   }
 }

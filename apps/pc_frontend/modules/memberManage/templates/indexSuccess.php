@@ -1,5 +1,6 @@
 <div class="parts">
   <div class="partsHeading"><h1>メンバー管理</h1></div>
+  <?php echo form_tag('@member_manage_all_delete_confirm') ?>
   <?php op_include_pager_navigation($members, '@member_manage_index?page=%d', array('use_current_query_string' => true)) ?>
   <table style="width: 100%;">
     <thead>
@@ -8,7 +9,7 @@
     <tbody>
 <?php foreach ($members->getResults() as $member): ?>
       <tr>
-        <td><input type="checkbox" name="member[select][]" value="<?php echo $member->getId() ?>" /></td>
+        <td><input type="checkbox" name="id[]" value="<?php echo $member->getId() ?>" /></td>
         <td><?php echo $member->getId() ?></td>
         <td><?php echo $member->getName() ?></td>
         <td><?php echo $member->getEmailAddress() ?></td>
@@ -21,6 +22,8 @@
         </td>
       </tr>
 <?php endforeach; ?>
+      <tr><td colspan="7">選択したメンバーを一括で <input type="submit" name="submit" value="削除" class="btn btn-danger" /></td></tr>
     </tbody>
   </table>
+  </form>
 </div>

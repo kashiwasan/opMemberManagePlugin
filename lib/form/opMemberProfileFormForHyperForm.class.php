@@ -248,7 +248,7 @@ class opMemberProfileFormForHyperForm extends BaseForm
         $form = array();
         $form['key'] = $profile->getName();
         $form['label'] = sfContext::getInstance()->getI18N()->__('Public flag');
-        $form['input']['type'] = 'radio'; // TODO: 本当はsliderにしたいがHyperformのバグ？により断念。
+        $form['input']['type'] = 'slider'; // TODO: 本当はsliderにしたいがHyperformのバグ？により断念。
         $form['input']['isRequired'] = true;
         foreach ($profile->getPublicFlags() as $k => $v)
         {

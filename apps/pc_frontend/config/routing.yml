@@ -37,6 +37,18 @@ member_manage_delete:
     id: \d+ 
     sf_method: [get, post]
 
+member_manage_all_delete_confirm:
+  url:   /member/manage/allDelete/confirm
+  param: { module: memberManage, action: allDeleteConfirm }
+  requirements:
+    sf_method: [get, post]
+
+member_manage_all_delete:
+  url:   /member/manage/allDelete/complete
+  param: { module: memberManage, action: allDeleteComplete }
+  requirements:
+    sf_method: [get, post]
+
 member_manage_reject_confirm:
   url:   /member/manage/reject/confirm/:id
   param: { module: memberManage, action: loginRejectConfirm }
