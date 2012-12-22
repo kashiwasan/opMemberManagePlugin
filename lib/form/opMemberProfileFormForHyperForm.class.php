@@ -156,7 +156,7 @@ class opMemberProfileFormForHyperForm extends BaseForm
         $itemCount = count($form['input']['items']);
           for($i=0;$i<$itemCount;$i++)
           {
-            if ($form['input']['items'][$i]['label'] === (string) sfContext::getInstance()->getI18N()->__($this->profileMember->getProfile($form['key'])))
+            if ($form['input']['items'][$i]['value'] === (string) $this->profileMember->getProfile($form['key']))
             {
               $form['input']['items'][$i]['isSelected'] = true;
             }

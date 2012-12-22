@@ -3,6 +3,12 @@
 <?php use_helper('Javascript') ?>
 <?php use_javascript('/opMemberManagePlugin/js/hyperform.js') ?>
 <?php use_stylesheet('/opMemberManagePlugin/css/hyperform-1.1.css', 'last') ?>
+<style type="text/css">
+.hyperform td {
+  overflow: visible;
+}
+</style>
+
 <?php $mf = $sf_data->getRaw('memberForm') ?>
 <?php $profile = $sf_data->getRaw('profileForm') ?>
 <?php $config = $sf_data->getRaw('configForm') ?>
