@@ -11,6 +11,17 @@ member_manage_edit:
     id: \d+ 
     sf_method: [get, post]
 
+member_manage_new:
+  url:   /member/manage/new
+  param: { module: memberManage, action: new }
+  requirements:
+    sf_method: [get, post]
+
+member_manage_get_hyperform:
+  url: /member/manage/api/get_hyperform.json
+  param: { module: memberManage, action: getHyperform, sf_format: json }
+  requirements: { sf_method: [get, post] }
+
 member_managae_edit_confirm:
   url:   /member/manage/edit/confirm/:id
   param: { module: memberManage, action: editConfirm }
@@ -21,7 +32,7 @@ member_managae_edit_confirm:
 member_manage_edit_post:
   url: /member/manage/api/edit.json
   param: { module: memberManage, action: editComplete, sf_format: json }
-  requirements: { sf_method: [get, post] }
+  requirements: { sf_method: [post] }
 
 member_manage_delete_confirm:
   url:   /member/manage/delete/confirm/:id

@@ -15,7 +15,7 @@ $(function(){
   $.ajax({
     url: "'.url_for('@member_manage_get_hyperform').'",
     type: "get",
-    data: { id: '.$member->getId().'},
+    data: { is_new: "true"},
     dataType: "json",
     success: function(json) {
       $("#form-loading").hide();
@@ -54,10 +54,10 @@ function generateHyperform(fields) {
     labelAlign: "right",
     validator: validator,
     submitLabel: "'.__('Edit').'",
-//    disableFormWhenSubmit: true,
+    disableFormWhenSubmit: true,
     onSubmit: function(data) {
       $.ajax({
-        url: "'.url_for('@member_manage_edit_post?id='.$member->getId()).'",
+        url: "'.url_for('@member_manage_edit_post?is_new=true').'",
         type: "post",
         data: data,
         dataType: "json",
@@ -65,7 +65,7 @@ function generateHyperform(fields) {
           $("#form-message").removeClass("alert-error").addClass("alert-success").text("編集に成功しました。").show();
         },
         error: function(x, r, e){
-          $("#form-message").removeClass("alert-success").addClass("alert-error").text("入力内容を見直しの上もう一度送信してください。").show();
+          $("#form-message").removeClass("alert-success").addClass("alert-error").text("通信に失敗しました。再読み込みをしてください").show();
         },
       });
       console.log(data); 

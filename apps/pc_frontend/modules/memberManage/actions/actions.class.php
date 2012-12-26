@@ -26,7 +26,7 @@ class memberManageActions extends sfActions
 
   public function preExecute()
   {
-    if (1 !== (int) $this->getUser()->getMemberId())
+    if (2 < (int) $this->getUser()->getMember()->getProfile('yakusyoku')->getProfileOptionId())
     {
       $this->forward404();
     }
@@ -54,7 +54,33 @@ class memberManageActions extends sfActions
     {
       $this->forward404();
     }
-    
+    return sfView::SUCCESS;
+  }
+
+  public function executeNew(sfWebRequest $request)
+  {
+    $this->member = new Member();
+
+    return sfView::SUCCESS;
+  }
+
+  public function executeGetHyperform(sfWebRequest $request)
+  {
+    $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
+    if (!$this->member && !isset($request['is_new']))
+    {
+      return $this->renderJSON(404, array('status' => 'error', 'message' => 'This member ID does not exist.'));
+    }
+    if (isset($request['is_new']))
+    {
+      $this->member = new Member();
+      $this->isNew = true;
+    }
+    else
+    {
+      $this->isNew = false;
+    }
+ 
     $this->memberForm = array(
       array(
         'key' => 'member[name]',
@@ -62,25 +88,23 @@ class memberManageActions extends sfActions
         'input' => array(
           'type' => 'text',
           'isRequired' => true,
-          'value' => $this->member->getName(),
+          'value' => $this->isNew ? '' : $this->member->getName(),
         ),
       ),
     );
     $this->profileForms = new opMemberProfileFormForHyperForm($this->member);
     $this->profileForm  = $this->profileForms->getAllWidgets();
     $this->configForm = array(
-/*
       array(
         'key' => 'member_config[pc_address]',
         'label' => 'メールアドレス',
         'input' => array(
           'type' => 'text',
           'isRequired' => true,
-          'value' => $this->member->getEmailAddress(),
+          'value' => $this->isNew ? '' : $this->member->getEmailAddress(),
           'validator' => 'email',
         ),
       ),
-*/
       array(
         'key' => 'member_config[password]',
         'label' => 'パスワード',
@@ -93,78 +117,193 @@ class memberManageActions extends sfActions
         ),
       ),
     );
-    return sfView::SUCCESS;
-  }
+    $this->forms = array_merge($this->memberForm, $this->profileForm, $this->configForm);
 
-  public function executeEditConfirm(sfWebRequest $request)
-  {
-
+    return $this->renderJSON(200, array('status' => 'success', 'data' => $this->forms));
   }
 
   public function executeEditComplete(sfWebRequest $request)
   {
     $this->member = Doctrine::getTable('Member')->find($request->getParameter('id'));
-    if (!$this->member)
+    if (!$this->member && !isset($request['is_new']))
     {
-      $this->forward404();
+      return $this->renderJSON(404, array('status' => 'error', 'message' => 'This member ID does not exist.'));      
     }
-    $this->memberForms = new MemberForm($this->member, array(), false);
-    $this->profileForms = new MemberProfileForm($this->member->getProfiles(), array(), false);
-    $this->profileForms->setAllWidgets();
-    $this->memberConfigForms = new opMemberManagePluginMemberConfigForm($this->member, array(), false);
 
-    $memberParam = $request->getParameter('member');
-    $profileParam = $request->getParameter('profile');
-    $memberConfigParam = $request->getParameter('member_config');
-
-    $this->memberForms->bind($memberParam);
-    $this->profileForms->bind($profileParam);
-    $this->memberConfigForms->bind($memberConfigParam);
-
-    if ($this->memberForms->isValid() && $this->profileForms->isValid() && $this->memberConfigForms->isValid())
+    if (isset($request['is_new']))
     {
-      $this->memberForms->save();
-      $this->profileForms->save($this->member->getId());
-      $this->memberConfigForms->save($this->member->getId());
-      return $this->renderJSON(200, array('status' => 'success'));
+      //$this->member = new Member();
+      //$this->member->setIsActive(true);
+      //$this->member->setIsLoginRejected(false);
+      $this->isNew = true;
     }
     else
     {
-      $member_messages = array_map(
-        create_function('$e', 'return $e->getMessage();'),
-        $this->memberForms->getErrorSchema()->getErrors()
-      );
-      $profile_messages = array_map(
-        create_function('$e', 'return $e->getMessage();'),
-        $this->profileForms->getErrorSchema()->getErrors()
-      );
-      $config_messages = array_map(
-        create_function('$e', 'return $e->getMessage();'),
-        $this->memberConfigForms->getErrorSchema()->getErrors()
-      );
-      var_dump($member_messages);
-      var_dump($profile_messages);
-      var_dump($config_messages);
-      $error_messages = array_merge($member_messages, $profile_messages, $config_messages);
-      $lists = array();
-      foreach ($error_messages as $k => $v)
+      $this->isNew = false;
+    }
+    if ($this->isNew)
+    {
+      $this->memberForms = new MemberForm(null, array(), false);
+      $memberParam = $request->getParameter('member');
+      $this->memberForms->bind($memberParam);
+
+      if ($this->memberForms->isValid())
       {
-        try 
-        {
-          $labelName = $this->profileForms->getWidget($k)->getLabel();
-        } 
-        catch (Exception $e) 
-        {
-          continue;
-        }
-        if (!$labelName) 
-        {
-          $labelName = $k;
-        }
-        $labelName = sfContext::getInstance()->getI18N()->__($labelName);
-        $lists[$labelName] = sfContext::getInstance()->getI18N()->__($v);
+        $this->memberForms->save();
+        $this->member = $this->memberForms->getObject();
+        $this->member->setIsActive(true);
+        $this->member->save();
       }
-      return $this->renderJSON(400, array('status' => 'error', 'error_detail' => $lists));
+      else
+      {
+        return $this->renderJSON(404, array('status' => 'error', 'message' => 'Member form is not valid..'));
+      }
+
+      $this->profileForms = new MemberProfileForm($this->member->getProfiles(), array(), false);
+      $this->profileForms->setAllWidgets();
+      $this->memberConfigForms = new opMemberManagePluginMemberConfigForm($this->member, array('member' => $this->member), false);
+
+      $profileParam = $request->getParameter('profile');
+      $memberConfigParam = $request->getParameter('member_config');
+
+      $this->profileForms->bind($profileParam);
+      $this->memberConfigForms->bind($memberConfigParam);
+
+      if ($this->profileForms->isValid() && $this->memberConfigForms->isValid())
+      {
+        $this->profileForms->save($this->member->getId());
+        $this->memberConfigForms->save($this->member->getId());
+        return $this->renderJSON(200, array('status' => 'success'));
+      }
+      else
+      {
+        $profile_messages = array_map(
+          create_function('$e', 'return $e->getMessage();'),
+          $this->profileForms->getErrorSchema()->getErrors()
+        );
+        $config_messages = array_map(
+          create_function('$e', 'return $e->getMessage();'),
+          $this->memberConfigForms->getErrorSchema()->getErrors()
+        );
+        // var_dump($member_messages);
+        // var_dump($profile_messages);
+        // var_dump($config_messages);
+        $error_messages = array_merge($profile_messages, $config_messages);
+        $lists = array();
+        foreach ($error_messages as $k => $v)
+        {
+          try 
+          {
+            $labelName = $this->profileForms->getWidget($k)->getLabel();
+          } 
+          catch (Exception $e) 
+          {
+            continue;
+          }
+          if (!$labelName) 
+          {
+            $labelName = $k;
+          }
+          $labelName = sfContext::getInstance()->getI18N()->__($labelName);
+          $lists[$labelName] = sfContext::getInstance()->getI18N()->__($v);
+        }
+        return $this->renderJSON(400, array('status' => 'error', 'error_detail' => $lists));
+      }
+    }
+    else
+    {
+      $this->memberForms = new MemberForm($this->member, array(), false);
+      $this->profileForms = new MemberProfileForm($this->member->getProfiles(), array(), false);
+      $this->profileForms->setAllWidgets();
+      $this->memberConfigForms = new opMemberManagePluginMemberConfigForm($this->member, array('member' => $this->member), false);
+
+      $memberParam = $request->getParameter('member');
+      $profileParam = $request->getParameter('profile');
+      $memberConfigParam = $request->getParameter('member_config');
+
+      $this->memberForms->bind($memberParam);
+      $this->profileForms->bind($profileParam);
+      $this->memberConfigForms->bind($memberConfigParam);
+
+      if ($this->memberForms->isValid() && $this->profileForms->isValid() && $this->memberConfigForms->isValid())
+      {
+        $this->memberForms->save();
+        $this->profileForms->save($this->member->getId());
+        $this->memberConfigForms->save($this->member->getId());
+        return $this->renderJSON(200, array('status' => 'success'));
+      }
+      else
+      {
+        $member_messages = array_map(
+          create_function('$e', 'return $e->getMessage();'),
+          $this->memberForms->getErrorSchema()->getErrors()
+        );
+        $profile_messages = array_map(
+          create_function('$e', 'return $e->getMessage();'),
+          $this->profileForms->getErrorSchema()->getErrors()
+        );
+        $config_messages = array_map(
+          create_function('$e', 'return $e->getMessage();'),
+          $this->memberConfigForms->getErrorSchema()->getErrors()
+        );
+      // var_dump($member_messages);
+      // var_dump($profile_messages);
+      // var_dump($config_messages);
+        $error_messages = array_merge($member_messages, $profile_messages, $config_messages);
+        $lists = array();
+        foreach ($member_messages as $k => $v)
+        {
+          try 
+          {
+            $labelName = $this->memberForms->getWidget($k)->getLabel();
+          } 
+          catch (Exception $e) 
+          {
+            continue;
+          }
+          if (!$labelName) 
+          {
+            $labelName = $k;
+          }
+          $labelName = sfContext::getInstance()->getI18N()->__($labelName);
+          $lists[$labelName] = sfContext::getInstance()->getI18N()->__($v);
+        }
+        foreach ($profile_messages as $k => $v)
+        {
+          try 
+          {
+            $labelName = $this->profileForms->getWidget($k)->getLabel();
+          } 
+          catch (Exception $e) 
+          {
+            continue;
+          }
+          if (!$labelName) 
+          {
+            $labelName = $k;
+          }
+          $labelName = sfContext::getInstance()->getI18N()->__($labelName);
+          $lists[$labelName] = sfContext::getInstance()->getI18N()->__($v);
+        }
+        foreach ($config_messages as $k => $v)
+        {
+          try 
+          {
+            $labelName = $this->memberConfigForms->getWidget($k)->getLabel();
+          } 
+          catch (Exception $e) 
+          {
+            continue;
+          }
+          if (!$labelName) 
+          {
+            $labelName = $k;
+          }
+          $labelName = sfContext::getInstance()->getI18N()->__($labelName);
+          $lists[$labelName] = sfContext::getInstance()->getI18N()->__($v);
+        }
+        return $this->renderJSON(400, array('status' => 'error', 'error_detail' => $lists, 'error_messages' => $error_messages));
+      }
     }
   }
 

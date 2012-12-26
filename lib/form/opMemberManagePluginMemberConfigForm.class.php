@@ -17,121 +17,34 @@
  */
 class opMemberManagePluginMemberConfigForm extends BaseForm
 {
-  protected $memberConfigSettings = array();
-  protected $category = '';
-  protected $member;
-  protected $isNew = true;
-  protected $isAutoGenerate = true;
 
-  public function __construct(Member $member = null, $options = array(), $CSRFSecret = null)
+  public $member = null;
+  public function setup()
   {
-    $this->setMemberConfigSettings();
-
-    $this->member = $member;
-    if (is_null($this->member)) {
-      $this->isNew = true;
-      $this->member = new Member();
-      $this->member->setIsActive(false);
-    } elseif (!$this->member->getIsActive()) {
-      $this->isNew = true;
-    }
-
-    parent::__construct(array(), $options, $CSRFSecret);
-
-    if ($this->isAutoGenerate) {
-      $this->generateConfigWidgets();
-    }
+    $this->member = $this->getOption('member');
+    $this->setWidget('pc_address', new sfWidgetFormInput());
+    $this->setValidator('pc_address', new opValidatorPCEmail());
+    $this->setWidget('password', new sfWidgetFormInputPassword());
+    $this->setValidator('password', new sfValidatorString(array('required' => false)));
+    $this->mergePostValidator(new sfValidatorCallback(array(
+      'callback' => array($this, 'isUnique'),
+      'arguments' => array('name' => 'pc_address'),
+    )));
 
     $this->widgetSchema->setNameFormat('member_config[%s]');
   }
 
-  public function generateConfigWidgets()
+  public function save()
   {
-    foreach ($this->memberConfigSettings as $key => $value) {
-      if ('password' === $key)
-      {
-        if ($this->isNew && $value['IsRegist'] || !$this->isNew && $value['IsConfig']) {
-          $this->setMemberConfigWidget($key);
-        }
-      }
-    }
-  }
-
-  protected function appendMobileInputMode()
-  {
-    parent::appendMobileInputMode();
-
-    foreach ($this as $k => $v)
+    $member = $this->getOption('member');
+    if (!$this->isValid())
     {
-      $widget = $this->widgetSchema[$k];
-      $validator = $this->validatorSchema[$k];
-
-      if (!($widget instanceof sfWidgetFormInput))
-      {
-        continue;
-      }
-
-      if ($validator instanceof sfValidatorAnd)
-      {
-        foreach ($validator->getValidators() as $childValidator)
-        {
-          if ($childValidator instanceof sfValidatorEmail)
-          {
-            opToolkit::appendMobileInputModeAttributesForFormWidget($widget, 'alphabet');
-          }
-          elseif ($childValidator instanceof sfValidatorNumber)
-          {
-            opToolkit::appendMobileInputModeAttributesForFormWidget($widget, 'numeric');
-          }
-        }
-      }
+      throw $this->getErrorSchema();
     }
-  }
-
-  public function setMemberConfigSettings()
-  {
-    $categories = sfConfig::get('openpne_member_category');
-    $configs = sfConfig::get('openpne_member_config');
-
-    if (!$this->category) {
-      $this->memberConfigSettings = $configs;
-      return true;
-    }
-
-    foreach ($categories[$this->category] as $value)
+    $member->setConfig('pc_address', $this->getValue('pc_address'));
+    if ('' != $this->getValue('password'))
     {
-      $this->memberConfigSettings[$value] = $configs[$value];
-    }
-  }
-
-  public function setMemberConfigWidget($name)
-  {
-    $config = $this->memberConfigSettings[$name];
-    if ('password' === $name)
-    {
-      $config['IsRequired'] = false;
-    }
-    $this->widgetSchema[$name] = opFormItemGenerator::generateWidget($config);
-    $this->widgetSchema->setLabel($name, $config['Caption']);
-    $memberConfig = Doctrine::getTable('MemberConfig')->retrieveByNameAndMemberId($name, $this->member->getId());
-    if ($memberConfig) {
-      $this->setDefault($name, $memberConfig->getValue());
-    }
-    $this->validatorSchema[$name] = opFormItemGenerator::generateValidator($config);
-
-//    if (!empty($config['IsConfirm']) && 'password' !== $name) {
-//      $this->validatorSchema[$name.'_confirm'] = $this->validatorSchema[$name];
-//      $this->widgetSchema[$name.'_confirm'] = $this->widgetSchema[$name];
-//      $this->widgetSchema->setLabel($name.'_confirm', $config['Caption'].' (Confirm)');
-//
- //     $this->mergePostValidator(new sfValidatorSchemaCompare($name, '==', $name.'_confirm'));
- //   }
-
-    if (!empty($config['IsUnique'])) {
-      $this->mergePostValidator(new sfValidatorCallback(array(
-        'callback' => array($this, 'isUnique'),
-        'arguments' => array('name' => $name),
-      )));
+      $member->setConfig('password', md5($this->getValue('password')));
     }
   }
 
@@ -148,81 +61,5 @@ class opMemberManagePluginMemberConfigForm extends BaseForm
     }
 
     throw new sfValidatorError($validator, 'Invalid %name%.', array('name' => $name));
-  }
-
-  public function isValid()
-  {
-    if ($this->member)
-    {
-      return parent::isValid();
-    }
-
-    opActivateBehavior::disable();
-    foreach ($this->getValues() as $key => $value)
-    {
-      if (!empty($this->memberConfigSettings[$key]['IsUnique']))
-      {
-        $memberConfig = Doctrine::getTable('MemberConfig')->retrieveByNameAndValue($key.'_pre', $value);
-        if ($memberConfig)
-        {
-          $member = $memberConfig->getMember();
-          if (!$member->getIsActive())
-          {
-            $this->member = $member;
-          }
-        }
-      }
-    }
-    opActivateBehavior::enable();
-    return parent::isValid();
-  }
-
-  public function save()
-  {
-    $this->member->save();
-
-    foreach ($this->getValues() as $key => $value)
-    {
-      if (strrpos($key, '_confirm'))
-      {
-        continue;
-      }
-
-      $this->saveConfig($key, $value);
-    }
-
-    return true;
-  }
-
-  public function saveConfig($name, $value)
-  {
-    $memberConfig = Doctrine::getTable('MemberConfig')->retrieveByNameAndMemberId($name, $this->member->getId());
-    if (!$memberConfig) {
-      $memberConfig = new MemberConfig();
-      $memberConfig->setName($name);
-      $memberConfig->setMember($this->member);
-    }
-    $memberConfig->setValue($value);
-
-    $memberConfig->save();
-  }
-
-  public function savePreConfig($name, $value)
-  {
-    $memberConfig = Doctrine::getTable('MemberConfig')->retrieveByNameAndMemberId($name.'_pre', $this->member->getId());
-    if (!$memberConfig) {
-      $memberConfig = new MemberConfig();
-      $memberConfig->setName($name);
-      $memberConfig->setMember($this->member);
-    }
-
-    $memberConfig->setValue($value);
-    $memberConfig->savePre();
-    $memberConfig->saveToken();
-  }
-
-  public function getCompleteMessage()
-  {
-    return 'Saved configuration successfully.';
   }
 }
