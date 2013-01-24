@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<xliff version="1.0">
+  <file orginal="global" source-language="en" datatype="plaintext">
+    <body>
+      <trans-unit id="">
+        <source>New</source>
+        <target>新規</target>
+      </trans-unit>
+      <trans-unit id="">
+        <source>Edit</source>
+        <target>編集</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

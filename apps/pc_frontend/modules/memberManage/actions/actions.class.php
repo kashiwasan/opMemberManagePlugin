@@ -111,7 +111,7 @@ class memberManageActions extends sfActions
         'text' => '6文字以上12文字以内で設定してください。変更しない場合は入力不要です。',
         'input' => array(
           'type' => 'password',
-          'isRequired' => false,
+          'isRequired' => $request['is_new'] ? true : false,
           'minlength' => 6,
           'maxlength' => 12,
         ),
@@ -338,7 +338,7 @@ class memberManageActions extends sfActions
     $this->members = array();
     if (!is_array($ids))
     {
-      $this->forward404();
+      return sfView::ERROR;
     }
     $this->csrfForm = new BaseForm();
     foreach ($ids as $id)
